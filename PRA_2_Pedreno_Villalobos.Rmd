@@ -1,0 +1,242 @@
+---
+title: 'PRA2: Tipologia y Ciclo de Vida de los Datos'
+author: "Daniel Villalobos Torrejon"
+date: "5/22/2022"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+setwd("~/Desktop/UOC/1r/2n Semestre/Tipologia y ciclo de vida de los datos/PRA2") # choose your own directory
+
+set.seed(12)
+
+if(!require(mice)){
+    install.packages("mice")
+    library(mice)
+}
+ 
+```
+
+
+# Definición del proyecto
+
+
+
+# Descripción del dataset
+
+La base de datos que vamos a utilizar en estre práctica proviene de una institución bancária europea. Aunque estos datos se han encontradp en la página web UCI Machine Learning Repository. 
+
+Las variables que se encuentran en este dataset son:
+
+|Nombre| Tipo | Descripción | Valores |
+|-------| ----| ------------| --------|
+|age |Numérica| Edat de la persona contactada| |
+| job| Categorica  nominal| Tipo de trabajo de la persona contactada| *Admin, blue-collar, entrepreneur, housemaid, management, retired, self-employed, services, Student, technician, unemployed*|
+|marital |Categorica nominal|Estado civil de la persona contactada|*Divorced (divorciat/da o vidu/a), married, single*|
+|education| Categorica  nominal|Nivel educativo de la persona contactada|*Basic.9y, high.school, professional.course, university.degree*|
+|housing|Categorica binaria|Indica si la persona contactada tiene una hipoteca contratada|*Yes, no*|
+|loan|Categorica binaria|Indica si la persona contactada tiene un crédito personal|*Yes, no*|
+|contact|Categorica binaria|Tipo de comunicación que se ha realitzado|*Cellular, telephone*|
+|month|Categorica nominal|Mes en que se ha contactado por última vez|*Jan, feb, ..., nov, dec*|
+|day_of_week|Categorica nominal|Dia en que se ha contactat por última vez|*Mon, tue, wed, thu, fri.*|
+|duration|Numérica contínua|Duración en segundos de el último contacto con la persona| |
+|campaign|Numérica discreta|Número de veces que se ha contactado a la persona esta campaña| |
+|previous|Numérica discreta|Número de veces que se ha contactado a la persona antes de esta campaña| |
+|poutcome| Categorica nominal|Resultado de la campaña de marketing anterior|*Failure, nonexistent, success*|
+|emp.var.rate|Numérica contínua|Tasa de varicación de la ocupación del momento en que se ha contactado (Indicador trimestral)| |
+|cons.price.idx|Numérica contínua|Indice de precio del consumidor (Indicador mensual)| |
+|cons.conf.idx|Numérica contínua |Indice de confianza del consumidor (Indicador mensual)| |
+|euribor3m|Numérica contínua|Euribor a 3 meses en el dia del contacto (Indicador diario)| |
+|nr.employed|Numérica discreta|Número de trabajadores en la entidad bancaria en el momento del contacto| |
+|y|Categorica binaria|Indica si el cliente ha contratado un diposito bancario durante esta campaña|*Yes, no*|
+
+
+Se han eliminado dos variables de la base de datos original (*default* y *pdays*), ya que, en el primer caso no se sabia interpretar el significado de la variable, y en el segundo caso porque no aportaba más información que la que ya aporta la variable *previous*.
+
+Como se puede esperar la variable respuesta que utilizaremos será, el conocer si un cliente contratará el crédito durante la campaña o no. En la base de datos esta información esta recogida en la variable *y*.
+
+# Integración y selección de los datos de interés a analizar
+
+Para empezar el análisis primero debemos realizar una lectura de los datos:
+
+```{r}
+bd <- read.csv2("bank-additional-full.csv")
+head(bd)
+```
+
+# Limpieza de los datos.
+
+### Representación gráfica
+```{r}
+hist(bd$age)
+```
+
+
+```{r}
+barplot(prop.table(table(bd$job))) # UNKNOWNS QUEEE?
+
+which(bd$job == "unknown")
+```
+
+
+```{r}
+barplot(100*prop.table(table(bd$marital)))
+
+which(bd$marital == "unknown")
+```
+
+
+```{r}
+barplot(100*prop.table(table(bd$education)))
+```
+
+
+```{r}
+barplot(100*prop.table(table(bd$housing)))
+```
+
+
+```{r}
+barplot(100*prop.table(table(bd$loan)))
+```
+
+
+```{r}
+barplot(100*prop.table(table(bd$contact)))
+```
+
+
+```{r}
+barplot(100*prop.table(table(bd$month)))
+```
+
+
+```{r}
+barplot(100*prop.table(table(bd$day_of_week)))
+```
+
+
+```{r}
+hist(bd$duration) #MALA PINTA
+
+bd[which(bd$duration == 4918),]
+```
+
+
+```{r}
+hist(bd$campaign)
+```
+
+
+```{r}
+hist(bd$previous)
+```
+
+
+```{r}
+barplot(table(bd$poutcome))
+```
+
+
+```{r}
+table(bd$emp.var.rate) #VARIACI? TREBALL TRIMESTRAL
+```
+
+
+```{r}
+table(bd$cons.price.idx) #IPC MENSUAL
+```
+
+
+```{r}
+table(bd$cons.conf.idx) # INDEX CONFIANÇA CONSUMIDOR
+```
+
+
+```{r}
+table(bd$euribor3m) #EURIBOR A TRES MESOS PER DIA
+```
+
+
+```{r}
+table(bd$nr.employed) #TREBALLADOR PER TRIMESTRE
+```
+
+### Conteo de missings i eliminación
+```{r}
+for (i in 1:nrow(bd)){
+  
+  bd$na_count[i] <- sum(bd[i,] == 'unknown') 
+  
+}
+table(bd$na_count)
+```
+
+
+```{r}
+bd <- bd[bd$na_count < 3, ] # Eliminamos si tiene más de 3 unkowns
+bd <- bd[, -5] # Eliminamos default 
+bd <- bd[, -12] # Eliminamos pdays
+```
+
+
+```{r}
+for (k in 1:nrow(bd)){
+  if(bd$education[k] == 'basic.4y' | bd$education[k] == 'basic.6y' | bd$education[k] == 'basic.9y' | bd$education[k] == 'illiterate'){
+    bd$education[k] <- 'basic.9y'
+  }
+} 
+```
+
+
+### Representación variable respuesta
+
+```{r}
+table(bd$y)
+prop.table(table(bd$y))
+
+fig <-  barplot(100*prop.table(table(bd$y)), col = "lightblue", main = "Contractacio diposit bancari", ylab = "%  clients",
+                font.lab = 2, ylim = c(0,100), width = 0.5)
+
+text(fig, 100*prop.table(table(bd$y)),  round(100*prop.table(table(bd$y)),3), cex= 1, pos = 3)
+
+ 
+```
+
+
+### Imputación missings
+```{r}
+ for(i in 1:nrow(bd)){
+   for (j in 2:6){
+     if(bd[i,j] == 'unknown'){
+     bd[i,j] <- NA  
+     } 
+     }
+ } 
+```
+
+```{r}
+bd[,(2:6)] <- lapply(bd[,2:6], as.factor)
+ 
+ summary(bd)
+```
+
+
+```{r}
+ imp_mice <- mice(bd[,2:6], m=1, meth = "polyreg" )
+ summary(imp_mice)
+ summary(complete(imp_mice))
+ imp_mice2 <- complete(imp_mice)
+
+ bd[,2:6] <- imp_mice2 
+```
+
+
+# Análisis de los datos.
+
+
+
+# Resolución del problema
+
+
