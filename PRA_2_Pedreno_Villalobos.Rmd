@@ -235,6 +235,13 @@ bd[,(2:6)] <- lapply(bd[,2:6], as.factor)
 
 # Análisis de los datos.
 
+```{r}
+bd$y <- as.factor(bd$y) # convertimos la varible respuesta a factor
+modelo_1 <- glm(y~., data = bd, family = binomial(link = logit))
+
+summary(modelo_1)
+```
+
 
 
 # Resolución del problema
