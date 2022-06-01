@@ -237,7 +237,13 @@ bd[,(2:6)] <- lapply(bd[,2:6], as.factor)
 
 ```{r}
 bd$y <- as.factor(bd$y) # convertimos la varible respuesta a factor
-modelo_1 <- glm(y~., data = bd, family = binomial(link = logit))
+
+modelo_1 <- glm(y~ 
+                age + job + marital + education + 
+                housing + loan + contact+ month + 
+                day_of_week + duration + campaign + 
+                previous + poutcome 
+                , data = bd, family = binomial(link = logit))
 
 summary(modelo_1)
 ```
