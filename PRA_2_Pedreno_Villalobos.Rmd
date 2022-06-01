@@ -164,6 +164,9 @@ table(bd$nr.employed) #TREBALLADOR PER TRIMESTRE
 ```
 
 ### Conteo de missings i eliminación
+
+Realizaremos un breve análisis de los valores missings en cada uno de los registros, esto nos dara un poco más de información de como esta estructurada la base de datos.
+
 ```{r}
 for (i in 1:nrow(bd)){
   
@@ -173,6 +176,8 @@ for (i in 1:nrow(bd)){
 table(bd$na_count)
 ```
 
+Como se muestra en la tabla de arriba, hay registros con hasta 5 valores missing, de los cuales, aquellos que tengan más de 3 valores faltantes por registro, al ser una cantidad bastante elevada de missings los eliminaremos de la base de datos.
+Además eliminaremos de la base de datos la variable default y pdays, la primera por su dificil interpretación, y la segunda, ya que nos aporta la misma información que la variable *previous*. 
 
 ```{r}
 bd <- bd[bd$na_count < 3, ] # Eliminamos si tiene más de 3 unkowns
@@ -180,6 +185,7 @@ bd <- bd[, -5] # Eliminamos default
 bd <- bd[, -12] # Eliminamos pdays
 ```
 
+Siguiendo con el preproceso de los datos se ha decidido juntar categorias de la variable education, ya que de esta manera reducimos el número de categorias y se puede realizar un análisis más sencillo. Se han juntado aquellas categroias que tenian educación básica de 9 años o inferior en la categoria *basic.9y*.
 
 ```{r}
 for (k in 1:nrow(bd)){
@@ -206,6 +212,9 @@ text(fig, 100*prop.table(table(bd$y)),  round(100*prop.table(table(bd$y)),3), ce
 
 
 ### Imputación missings
+
+Para realizar la imputación de los valores faltantes, lo primero que hemos realizado, ha sido sobre las variables categoricas que son aquellas que para nuestra base de datos alberga valores missings, pero estos no estan bien formateados, por lo tanto para aquellos registros con una label *unknown* les hemos asignado un valor *NA*.
+
 ```{r}
  for(i in 1:nrow(bd)){
    for (j in 2:6){
@@ -216,12 +225,15 @@ text(fig, 100*prop.table(table(bd$y)),  round(100*prop.table(table(bd$y)),3), ce
  } 
 ```
 
+Seguidamente hemos convertido estas variables en factores, para más adelante poder implementar un algoritmo de imputación de valores faltantes.
+
 ```{r}
 bd[,(2:6)] <- lapply(bd[,2:6], as.factor)
  
  summary(bd)
 ```
 
+Finalmente se ha realizado una imputación de los valores con el algoritmo de *mice*, con el método de *polyreg* que es el adecuado para utilizar variables categóricas. Finalmente asignamos los valores imputados a la base de datos y de esta manera ya no tenemos valores faltantes.
 
 ```{r}
  imp_mice <- mice(bd[,2:6], m=1, meth = "polyreg" )
@@ -235,9 +247,15 @@ bd[,(2:6)] <- lapply(bd[,2:6], as.factor)
 
 # Análisis de los datos.
 
+Antes de poder realizar cualquier tipo de análisis vamos a realizar una *factorización* de las variables categóricas para así poder analizar mejor los datos.
+
 ```{r}
 bd$y <- as.factor(bd$y) # convertimos la varible respuesta a factor
+bd[,apply(bd, 2, is.character)] <- lapply(bd[,apply(bd, 2, is.character)], as.factor)
+```
 
+
+```{r}
 modelo_1 <- glm(y~ 
                 age + job + marital + education + 
                 housing + loan + contact+ month + 
@@ -246,6 +264,11 @@ modelo_1 <- glm(y~
                 , data = bd, family = binomial(link = logit))
 
 summary(modelo_1)
+```
+
+Haciendo uso de la función step podemos encontrar cual es modelo optimo.
+```{r}
+step(modelo_1)
 ```
 
 
