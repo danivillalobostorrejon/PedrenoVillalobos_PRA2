@@ -15,6 +15,11 @@ if(!require(mice)){
     install.packages("mice")
     library(mice)
 }
+
+if(!require(ROCR)){
+    install.packages("ROCR")
+    library(ROCR)
+}
  
 ```
 
@@ -74,18 +79,17 @@ hist(bd$age)
 
 
 ```{r}
-barplot(prop.table(table(bd$job))) # UNKNOWNS QUEEE?
-
-which(bd$job == "unknown")
+barplot(prop.table(table(bd$job)))
 ```
+
+Podemos obervar como tenemos `r length(which(bd$job == "unknown"))` de valores *unknown*
 
 
 ```{r}
 barplot(100*prop.table(table(bd$marital)))
-
-which(bd$marital == "unknown")
 ```
 
+Podemos obervar como tenemos `r length(which(bd$marital == "unknown"))` de valores *unknown*
 
 ```{r}
 barplot(100*prop.table(table(bd$education)))
@@ -96,11 +100,15 @@ barplot(100*prop.table(table(bd$education)))
 barplot(100*prop.table(table(bd$housing)))
 ```
 
+Podemos obervar como tenemos `r length(which(bd$housing == "unknown"))` de valores *unknown*
+
 
 ```{r}
 barplot(100*prop.table(table(bd$loan)))
 ```
 
+
+Podemos obervar como tenemos `r length(which(bd$loan == "unknown"))` de valores *unknown*
 
 ```{r}
 barplot(100*prop.table(table(bd$contact)))
@@ -118,9 +126,7 @@ barplot(100*prop.table(table(bd$day_of_week)))
 
 
 ```{r}
-hist(bd$duration) #MALA PINTA
-
-bd[which(bd$duration == 4918),]
+hist(bd$duration)
 ```
 
 
@@ -140,7 +146,7 @@ barplot(table(bd$poutcome))
 
 
 ```{r}
-table(bd$emp.var.rate) #VARIACI? TREBALL TRIMESTRAL
+table(bd$emp.var.rate) #VARIACIÓ TREBALL TRIMESTRAL
 ```
 
 
@@ -198,17 +204,16 @@ for (k in 1:nrow(bd)){
 
 ### Representación variable respuesta
 
-```{r}
-table(bd$y)
-prop.table(table(bd$y))
+Seguidamente mostraremos un gráfico donde se muestra, en porcentaje, la cantidad de respuestas para cada una de las dos categorias.
 
+```{r}
 fig <-  barplot(100*prop.table(table(bd$y)), col = "lightblue", main = "Contractacio diposit bancari", ylab = "%  clients",
                 font.lab = 2, ylim = c(0,100), width = 0.5)
 
 text(fig, 100*prop.table(table(bd$y)),  round(100*prop.table(table(bd$y)),3), cex= 1, pos = 3)
-
- 
 ```
+
+Se puede observar como la categoria *no* tiene un cantidad muy elevada de registros respecto los registros de la categoria *yes*
 
 
 ### Imputación missings
@@ -328,10 +333,6 @@ accuracy <- (vp + vn)/total
 error_rate <- (fp+fn)/total
 recall <- vp/(vp+fp)
 especificity <- vn/(vn+fn)
-accuracy
-error_rate
-recall
-especificity
 ```
 
 Las métricas obtenidas son las siguientes
@@ -348,7 +349,6 @@ Como se puede observar el performance de todos las métricas es bastante bueno, 
 Seguidamente realizaremos un estudio con más profundidad a través de la curva ROC i así esclarecer si realmente el modelo presentado es un buen clasificador y, por lo tanto, predice con bastante exactitud nuestros datos.
 
 ```{r}
-library(ROCR)
 pred1 <- prediction(as.numeric(pred_valid), as.numeric(bd[valid,]$y))
 perf1 <- performance(pred1, "tpr", "fpr")
 plot(perf1)
