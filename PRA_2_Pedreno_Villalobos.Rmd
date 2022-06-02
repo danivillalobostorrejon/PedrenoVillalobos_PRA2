@@ -250,29 +250,108 @@ Finalmente se ha realizado una imputación de los valores con el algoritmo de *m
 Antes de poder realizar cualquier tipo de análisis vamos a realizar una *factorización* de las variables categóricas para así poder analizar mejor los datos.
 
 ```{r}
+levels(bd$y) <- c(0,1)
 bd$y <- as.factor(bd$y) # convertimos la varible respuesta a factor
-bd[,apply(bd, 2, is.character)] <- lapply(bd[,apply(bd, 2, is.character)], as.factor)
+bd[sapply(bd, is.character)] <- lapply(bd[sapply(bd, is.character)], 
+                                       as.factor)
+```
+
+Seguidamente para poder realizar un buen estudio separaremos nuestra base de datos en dos conjuntos, uno de entrenamiento y otro de validación. Con el primero lo que haremos será crear el modelo predictivo y conseguir el mejor ajuste posible, y seguidamente con el conjunto de validación comprobaremos que tan bueno es el ajuste. 
+
+```{r}
+n <- nrow(bd)
+
+set.seed(23531)
+learn <- sample(1:n, round(0.75*n))
+
+
+nlearn <- length(learn)
+ntest <- n - nlearn
+set.seed(23531)
+valid <- sample(1:nlearn, round(0.25*nlearn))
+train <- learn[-valid]
 ```
 
 
+Seguidamente creamos un primer modelo, este modelo lo que pretende encontrar es la relación de las variables *age, job, marital, education, housing, loan, contact, month, day_of_week, duration, campaign, previous, poutcome*.
+
+Al tener una variable respuesta del tipo categórica binaria se realizará una regresión logística.
+
 ```{r}
+summary(bd)
+bd$age <- as.numeric(bd$age)
 modelo_1 <- glm(y~ 
-                age + job + marital + education + 
-                housing + loan + contact+ month + 
-                day_of_week + duration + campaign + 
-                previous + poutcome 
-                , data = bd, family = binomial(link = logit))
+                age + job + marital + education + housing+
+                loan + contact + month + day_of_week + duration
+                + campaign + previous + poutcome
+                , data = bd[train,], family = binomial(link = logit))
 
 summary(modelo_1)
 ```
 
-Haciendo uso de la función step podemos encontrar cual es modelo optimo.
-```{r}
-step(modelo_1)
-```
-
-
 
 # Resolución del problema
 
+Finalmente valoraremos el ajuste de nuestro modelo calculando la matriz de confusión y el accuracy del modelo, además de una representación gráfica del ajuste del modelo, con la curva ROC.
 
+```{r}
+pred <- predict.glm(modelo_1, newdata=bd[train,], type="response")
+pred_train <- ifelse(pred > 0.5, 1, 0)
+pred_train <- factor(pred_train, levels = c("0", "1"), labels = c("No Contrata", "Contrata"))
+
+```
+
+```{r}
+matrizConfusion <- table(bd[train,]$y, pred_train)
+matrizConfusion
+```
+
+
+Para realizar el cálculo de la accuracy se debe realizar sobre la predicción realizada con el conjunto de datos de validación.
+
+```{r}
+pred_valid <- predict(modelo_1, type = 'response', newdata = bd[valid,])
+pred_valid <- ifelse(pred_valid > 0.5, 1, 0)
+pred_valid <- factor(pred_valid, levels = c("0", "1"), labels = c("No Contrata", "Contrata"))
+matrizConfusion <- table(bd[valid,]$y, pred_valid)
+matrizConfusion
+```
+
+```{r}
+vp <- matrizConfusion[1,1]
+fn <- matrizConfusion[1,2]
+vn <- matrizConfusion[2,2]
+fp <- matrizConfusion[2,1]
+total <- (vp+vn+fn+fp)
+
+accuracy <- (vp + vn)/total
+error_rate <- (fp+fn)/total
+recall <- vp/(vp+fp)
+especificity <- vn/(vn+fn)
+accuracy
+error_rate
+recall
+especificity
+```
+
+Las métricas obtenidas son las siguientes
+
+| Metric| Value |
+|-------|-------|
+|Accuracy| `r accuracy`|
+|Error rate | `r error_rate`|
+|Recall| `r recall`|
+|Especificity | `r especificity`|
+
+Como se puede observar el performance de todos las métricas es bastante bueno, por lo que a prioriri el ajuste del modelo parece ser bastante bueno. El único cálculo que vemos más alejado de tener unos buenos números es el de la Especificidad, la qual se puede observar como solo el `r especificity*100`% es clasificado como negativo cuando de verdad es negativo, en nuestro caso concreto, solo el `r especificity*100`% de las personas que contratan el crédito son clasificadas correctamente.
+
+Seguidamente realizaremos un estudio con más profundidad a través de la curva ROC i así esclarecer si realmente el modelo presentado es un buen clasificador y, por lo tanto, predice con bastante exactitud nuestros datos.
+
+```{r}
+library(ROCR)
+pred1 <- prediction(as.numeric(pred_valid), as.numeric(bd[valid,]$y))
+perf1 <- performance(pred1, "tpr", "fpr")
+plot(perf1)
+```
+
+Como podemos observar la curva ROC no se aleja mucho de la diagonal, por lo que se puede concluir que pese a que tengamos un accuracy bastante elevado la predicción no es muy buena. 
