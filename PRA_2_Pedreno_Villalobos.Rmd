@@ -1,8 +1,11 @@
 ---
 title: 'PRA2: Tipologia y Ciclo de Vida de los Datos'
-author: "Daniel Villalobos Torrejon"
+author: "Oscar Pedreño y  Daniel Villalobos"
 date: "5/22/2022"
-output: html_document
+output: 
+  html_document: 
+    toc: true
+    toc_float: true
 ---
 
 ```{r setup, include=FALSE}
@@ -26,11 +29,13 @@ if(!require(ROCR)){
 
 # Definición del proyecto
 
+En el siguiente proyecto de la asignatura, Tipologia y Ciclo de Vida de los Datos, del máster de la Universitat Oberta de Catalunya, trataremos de predecir el resultado de una campanya de marketing de un banco portuges a través de una base de datos encontrada en la página web UCI Machine Learning Repository. 
 
+Se ha escogido esta temática ya que ambos integrantes del equipo procedemos de un area economica, ya sea de estudios, como en el ámbito laboral, por lo que esta base de datos, como veremos más adelante nos permitirá analizar ciertas variables economicas, mediante una regresión logística.
+
+Como ya se ha comentado, se realizará un estudio de estos datos a través de un modelo de regresión logístico. Esto es debido a que nuestra variable respuesta, es una variable categórica con dos niveles, si la persona contactada no contrata o si la persona contactada contrata. Por lo tanto, creemos que la mejor manera de analizar estos datos es a través de un modelo logístico.
 
 # Descripción del dataset
-
-La base de datos que vamos a utilizar en estre práctica proviene de una institución bancária europea. Aunque estos datos se han encontradp en la página web UCI Machine Learning Repository. 
 
 Las variables que se encuentran en este dataset son:
 
@@ -59,7 +64,7 @@ Las variables que se encuentran en este dataset son:
 
 Se han eliminado dos variables de la base de datos original (*default* y *pdays*), ya que, en el primer caso no se sabia interpretar el significado de la variable, y en el segundo caso porque no aportaba más información que la que ya aporta la variable *previous*.
 
-Como se puede esperar la variable respuesta que utilizaremos será, el conocer si un cliente contratará el crédito durante la campaña o no. En la base de datos esta información esta recogida en la variable *y*.
+Como ya se ha explicado, la variable respuesta que utilizaremos será, el resultado de la campaña, es decir, si un cliente contratará el crédito durante la campaña o no. En la base de datos esta información esta recogida en la variable *y*.
 
 # Integración y selección de los datos de interés a analizar
 
@@ -72,81 +77,103 @@ head(bd)
 
 # Limpieza de los datos.
 
+Seguidamente realizaremos un análisis univariante de las distintas variables para poder observar con que clase de valores estamos tratando.
+
 ### Representación gráfica
+
+Como se puede observar la variable *age* contiene valores entre los `r min(bd$age)` y los `r max(bd$age)` años. La media de edad son `r mean(bd$age)`. Se observan varios valores outliers en estos datos, aunque no creemos que estos valores vayan a influenciar en el análisis, ya que son valores de entre 65 años y `r max(bd$age)`, por lo tanto pueden ser valores de edad totalmente asumibles por una persona.
+
 ```{r}
 hist(bd$age)
+boxplot(bd$age)
 ```
 
+Observamos como las categorias predominantes, para la varible *job* son, *admin, blue-collar, technician*. Además observamos una pequeña sección de registros con un valor *unknown*, estos valores más adelante serán tratados como valores missing. La cantidad de estos valores es: `r length(which(bd$job == "unknown"))`.
 
 ```{r}
 barplot(prop.table(table(bd$job)))
 ```
 
-Podemos obervar como tenemos `r length(which(bd$job == "unknown"))` de valores *unknown*
 
-
-```{r}
-barplot(100*prop.table(table(bd$marital)))
-```
-
-Podemos obervar como tenemos `r length(which(bd$marital == "unknown"))` de valores *unknown*
+En lo que refiere al estado civil de la persona contactada, observamos como el grupo dominante son personas casadas, además observamos una proporción de valores *unkwnon*, que como en el caso de la variable *job* serán tratados como valores faltantes. Tenemos `r length(which(bd$marital == "unknown"))` valores *unknown*
 
 ```{r}
-barplot(100*prop.table(table(bd$education)))
+barplot(prop.table(table(bd$marital)))
+prop.table(table(bd$marital))
 ```
 
 
-```{r}
-barplot(100*prop.table(table(bd$housing)))
-```
-
-Podemos obervar como tenemos `r length(which(bd$housing == "unknown"))` de valores *unknown*
-
+De las personas contactadas el gran grueso se clasifica como personas con un mínimo de estudios secundarios, ya que, las categroias de *high.school y university.degree* suman más del 50%. Se observan `r length(which(bd$education == "unknown"))` de valores *unknown*.
 
 ```{r}
-barplot(100*prop.table(table(bd$loan)))
+barplot(prop.table(table(bd$education)))
 ```
 
 
-Podemos obervar como tenemos `r length(which(bd$loan == "unknown"))` de valores *unknown*
+De las personas contratadas no se observa una gran diferencia entra las personas que ya tienen una hipoteca contratada o no, ya que ambos valores oscilan cerca del 50%. Podemos obervar como tenemos `r length(which(bd$housing == "unknown"))` de valores *unknown*.
 
 ```{r}
-barplot(100*prop.table(table(bd$contact)))
+barplot(prop.table(table(bd$housing)))
+```
+
+De las personas contactadas se observa como en su mayoria, algo más del 80%, no tienen contratado un crédito personal. Podemos obervar como tenemos `r length(which(bd$loan == "unknown"))` de valores *unknown*
+
+```{r}
+barplot(prop.table(table(bd$loan)))
+```
+
+Se observa como el contacto de las personas se ha realizado o vía teléfono fijo o vía teléfono móvil. Se ve como la mayoria de llamadas han sido via teléfono móvil.
+
+```{r}
+barplot(prop.table(table(bd$contact)))
+```
+
+Se observa como la proporción de llamadas es mayor en mayo que en los demás meses, y si hacemos un poco de zoom hacia fuera, vemos como el gran grueso de llamadas se realiza en los meses de verano. 
+
+```{r}
+barplot(prop.table(table(bd$month)))
+```
+
+No se observan diferencias entre los distintos días de la semana, lo que si podemos observar es como no hay llamadas fuera de los horarios estandard, es decir no hay llamadas en fin de semana.
+
+```{r}
+barplot(prop.table(table(bd$day_of_week)))
+```
+
+Observamos comom la gran mayoria de llamadas tienen una duración corta, de media tienen una duración de `r mean(bd$duration)` segundos, pero en este caso tiene más sentido mirar la mediana, ya que valores elevados pueden influenciar sobre el valor de la media, en cuanto a la mediana observamos que las llamadas duran `r median(bd$duration)`. Por lo que no son llamadas muy largas.
+
+
+```{r}
+hist(bd$duration, breaks= 100)
 ```
 
 
-```{r}
-barplot(100*prop.table(table(bd$month)))
-```
-
-
-```{r}
-barplot(100*prop.table(table(bd$day_of_week)))
-```
-
-
-```{r}
-hist(bd$duration)
-```
-
+Se observa como la mediana de esta variable es `r median(bd$campaign)` por lo que se puede obervar que en su gran mayoria, las personas de esta campaña no han sido contactadas muchas veces. 
 
 ```{r}
 hist(bd$campaign)
+summary(bd$campaign)
 ```
+
+
+Se observa como la mediana de esta variable es `r median(bd$previous)` por lo que se puede obervar que en su gran mayoria, las personas de esta campaña no habian sido contactadas con anterioridad. 
 
 
 ```{r}
 hist(bd$previous)
 ```
 
+De las personas que anteriormente habian sido contactadas la gran mayoria no contrataron el producto bancario, pero se observa como de las personas de la campaña actual, un gran grueso de estos individuos son nuevos.
 
 ```{r}
 barplot(table(bd$poutcome))
 ```
 
 
+Las siguientes varibles representan distintos indicadores económicos, como la variación mensual del trabajo o el IPC mensual. Los englobaremos todos en la categroria de **Situación Economica actual**. De las cuales por el momento no hay gran cosa a destacar.
+
 ```{r}
-table(bd$emp.var.rate) #VARIACIÓ TREBALL TRIMESTRAL
+table(bd$emp.var.rate) #VARIACIÓN TRABAJO TRIMESTRAL
 ```
 
 
@@ -156,12 +183,12 @@ table(bd$cons.price.idx) #IPC MENSUAL
 
 
 ```{r}
-table(bd$cons.conf.idx) # INDEX CONFIANÇA CONSUMIDOR
+table(bd$cons.conf.idx) # INDICE DE CONFIANZA CONSUMIDOR
 ```
 
 
 ```{r}
-table(bd$euribor3m) #EURIBOR A TRES MESOS PER DIA
+table(bd$euribor3m) #EURIBOR A TRES MESES POR DIA
 ```
 
 
@@ -215,6 +242,12 @@ text(fig, 100*prop.table(table(bd$y)),  round(100*prop.table(table(bd$y)),3), ce
 
 Se puede observar como la categoria *no* tiene un cantidad muy elevada de registros respecto los registros de la categoria *yes*
 
+Profundizando en el análisis podemos observar como las personas que si han aceptado el credito  bancario tienen de media una duración de llamada más elevada que las personas que no han contratado este producto.
+
+```{r}
+aggregate(duration~y, data= bd, mean)
+```
+
 
 ### Imputación missings
 
@@ -257,8 +290,13 @@ Antes de poder realizar cualquier tipo de análisis vamos a realizar una *factor
 ```{r}
 levels(bd$y) <- c(0,1)
 bd$y <- as.factor(bd$y) # convertimos la varible respuesta a factor
+
 bd[sapply(bd, is.character)] <- lapply(bd[sapply(bd, is.character)], 
                                        as.factor)
+
+bd$month <- factor(bd$month, levels = c("mar","apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"))
+bd$day_of_week <- factor(bd$day_of_week, levels = c("mon", "tue", "wed", "thu", "fri"))
+bd$age <- as.numeric(bd$age)
 ```
 
 Seguidamente para poder realizar un buen estudio separaremos nuestra base de datos en dos conjuntos, uno de entrenamiento y otro de validación. Con el primero lo que haremos será crear el modelo predictivo y conseguir el mejor ajuste posible, y seguidamente con el conjunto de validación comprobaremos que tan bueno es el ajuste. 
@@ -283,8 +321,6 @@ Seguidamente creamos un primer modelo, este modelo lo que pretende encontrar es 
 Al tener una variable respuesta del tipo categórica binaria se realizará una regresión logística.
 
 ```{r}
-summary(bd)
-bd$age <- as.numeric(bd$age)
 modelo_1 <- glm(y~ 
                 age + job + marital + education + housing+
                 loan + contact + month + day_of_week + duration
@@ -293,6 +329,10 @@ modelo_1 <- glm(y~
 
 summary(modelo_1)
 ```
+
+Del modelo que hemos construido podemos observar como la variable *duration*, que hemos analizado anterorimente tiene un efecto positivo sobre el resultado de la campaña, además se puede observar como el lunes, dia base, es el peor dia para realizar llamadas, y que en proporcion de aceptación de llamadas el mejor més es marzo. También se puede comprobar como las personas que han sido contactadas con anterioridad son más propensas a aceptar.
+
+El valor de Akaike nos muestra que el modelo, al tener demasiados registros, nos muestra un valor bastante alejado, pero aun así se podría pensar por el momento de que el modelo recoge bastante información de los datos y que puede ser un buen predictor. Seguidamente realizaremos el análisis predictivo correspondiente para analizar la performance de este modelo.
 
 
 # Resolución del problema
