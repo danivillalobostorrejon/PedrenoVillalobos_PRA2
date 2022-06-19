@@ -3,6 +3,11 @@ title: 'PRA2: Tipologia y Ciclo de Vida de los Datos'
 author: "Oscar Pedreño y  Daniel Villalobos"
 date: "5/22/2022"
 output: 
+  pdf_document:
+    toc: true
+    toc_depth: 3
+    fig_width: 7
+    fig_height: 6
   html_document: 
     toc: true
     toc_float: true
@@ -23,6 +28,8 @@ if(!require(ROCR)){
     install.packages("ROCR")
     library(ROCR)
 }
+
+# tinytex::install_tinytex()
  
 ```
 
